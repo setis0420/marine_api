@@ -1,0 +1,57 @@
+# === 데이터 파일 (대용량, GitHub에 안 올림) ===
+pgdata/
+mmsi_results/
+수심/
+*.nc
+*.csv
+*.zip
+*.html
+*.png
+*.jpg
+
+# === 로그 ===
+logs/
+*.log
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# === 환경변수 / 비밀 ===
+.env
+.env.*
+!.env.example
+
+# === 개발 도구 ===
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# === 결과물 / 임시 ===
+voyage_map/result/
+voyage_map/result_all/
+voyage_map.zip
+draw_*.log
+fetch_*.log
+migrate_*.log
+predict_*.log
+process_*.log
+ship_*.log
+voyage_model_*.log
+
+# === 백업 ===
+*_backup_*
+fishing_shipinfo_backup_*
+ship_drop_log_*
+
+# === 예외: 작은 참조 데이터는 유지 ===
+!ais_api/.gitignore
+!eez/*.geojson
+!voyage_map/*.geojson
+!voyage_map/*.xlsx

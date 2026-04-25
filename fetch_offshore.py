@@ -278,10 +278,15 @@ def compute_voyage_and_save(cur, mmsi, table):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--target-csv', default=DEFAULT_TARGET_CSV)
-    p.add_argument('--fishing-type', default=None, help='특정 업종만')
+    p.add_argument('--fishing-type', default=None,
+                   help='업종 필터 (콤마로 여러 개 지정 가능, 예: "대형선망어업,근해채낚기어업")')
     p.add_argument('--mmsi', type=int, default=None, help='단일 MMSI 테스트')
     p.add_argument('--workers', type=int, default=7)
     args = p.parse_args()
+
+    fishing_types = None
+    if args.fishing_type:
+        fishing_types = {t.strip() for t in args.fishing_type.split(',') if t.strip()}
 
     targets = []
     if args.mmsi:
@@ -290,14 +295,14 @@ def main():
         with open(args.target_csv, 'r', encoding='utf-8-sig') as f:
             r = csv.DictReader(f)
             for row in r:
-                if args.fishing_type and row['fishing_type'] != args.fishing_type:
+                if fishing_types and row['fishing_type'] not in fishing_types:
                     continue
                 targets.append(int(row['mmsi']))
 
     logging.info('=' * 60)
     logging.info(f'fetch_offshore 시작 | 대상 {len(targets)}척 | 워커 {args.workers}')
-    if args.fishing_type:
-        logging.info(f'업종 필터: {args.fishing_type}')
+    if fishing_types:
+        logging.info(f'업종 필터: {", ".join(sorted(fishing_types))}')
     logging.info(f'기간: {START_DATE.date()} ~ {END_DATE.date()}')
     logging.info('=' * 60)
 

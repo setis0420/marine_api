@@ -55,3 +55,4 @@ ship_drop_log_*
 !eez/*.geojson
 !voyage_map/*.geojson
 !voyage_map/*.xlsx
+!offshore_target.csv

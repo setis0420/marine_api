@@ -275,6 +275,29 @@ def compute_voyage_and_save(cur, mmsi, table):
     return len(voyage_meta)
 
 
+TARGET_FISHING_TYPES = [
+    '근해안강망어업', '근해연승어업', '근해자망어업', '근해채낚기어업', '근해통발어업',
+    '대형선망어업', '기선권현망어업', '대형트롤어업', '외끌이대형저인망어업',
+]
+
+
+def build_target_csv(out_path):
+    """marine.shipinfo에서 대상 9개 업종 MMSI 추출 → CSV 저장"""
+    conn = psycopg2.connect(**LOCAL_DB)
+    cur = conn.cursor()
+    cur.execute("""SELECT mmsi, fishing_type, COALESCE(shipname_kr,''), COALESCE(shipname,'')
+                   FROM shipinfo WHERE fishing_type = ANY(%s) ORDER BY fishing_type, mmsi""",
+                (TARGET_FISHING_TYPES,))
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+    with open(out_path, 'w', encoding='utf-8-sig', newline='') as f:
+        w = csv.writer(f)
+        w.writerow(['mmsi', 'fishing_type', 'shipname_kr', 'shipname'])
+        for r in rows: w.writerow(r)
+    logging.info(f'target CSV 생성: {out_path} ({len(rows)}척)')
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--target-csv', default=DEFAULT_TARGET_CSV)
@@ -292,6 +315,11 @@ def main():
     if args.mmsi:
         targets = [args.mmsi]
     else:
+        # CSV 없으면 DB에서 자동 생성
+        if not os.path.exists(args.target_csv):
+            logging.info(f'target CSV 없음 → DB에서 생성: {args.target_csv}')
+            build_target_csv(args.target_csv)
+
         with open(args.target_csv, 'r', encoding='utf-8-sig') as f:
             r = csv.DictReader(f)
             for row in r:

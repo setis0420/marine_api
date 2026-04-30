@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제주대학교 해양수산빅데이터 API</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; }
+        .header { background: linear-gradient(135deg, #1e3a5f, #2980b9); color: white; padding: 60px 20px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        .card { background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h2 { color: #1e3a5f; margin-bottom: 15px; border-bottom: 2px solid #2980b9; padding-bottom: 8px; }
+        .card h3 { color: #2980b9; margin: 15px 0 8px; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 6px; overflow-x: auto; margin: 10px 0; font-size: 0.85em; line-height: 1.5; }
+        .endpoint { background: #e8f4fd; padding: 10px 15px; border-left: 4px solid #2980b9; margin: 10px 0; border-radius: 0 4px 4px 0; }
+        .endpoint code { background: none; font-weight: bold; color: #1e3a5f; }
+        a { color: #2980b9; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .btn { display: inline-block; background: #2980b9; color: white; padding: 10px 25px; border-radius: 5px; margin: 5px; }
+        .btn:hover { background: #1e6fa0; text-decoration: none; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f0f4f8; }
+        .footer { text-align: center; padding: 30px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>제주대학교 해양수산빅데이터 API</h1>
+        <p>Jeju National University Marine Big Data API</p>
+        <div style="margin-top: 20px;">
+            <a href="/docs" class="btn">API 문서 (Swagger)</a>
+            <a href="/redoc" class="btn">API 문서 (ReDoc)</a>
+            <a href="/schema" class="btn">DB 스키마 탐색</a>
+            <a href="/analyst" class="btn" style="background:#16a085;">🤖 AI Analyst</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>개요</h2>
+            <p>본 API는 연구자 및 학생들에게 AIS 항적 데이터, 수산 데이터를 제공합니다.</p>
+            <ul style="margin: 15px 0 0 20px; line-height: 2;">
+                <li><b>AIS 항적 데이터</b>: 2012년 ~ 현재 (월별)</li>
+                <li><b>수산 데이터</b>: 위판, CPUE, 어획노력량, TAC 등 37개 테이블</li>
+                <li><b>어선 정보</b>: 전국 어선 8,698척</li>
+                <li><b>수협 관할구역</b>: 139개 수협</li>
+            </ul>
+            <p style="margin-top:15px; color:#c0392b;"><b>사용하려면 회원가입 후 API Key를 발급받아야 합니다.</b></p>
+        </div>
+
+        <div class="card">
+            <h2>로그인</h2>
+            <form id="loginForm" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+                <div>
+                    <label><b>사용자명</b></label><br>
+                    <input type="text" id="login_username" placeholder="사용자명 또는 이메일" required style="padding:8px;border:1px solid #ddd;border-radius:4px;width:200px;">
+                </div>
+                <div>
+                    <label><b>비밀번호</b></label><br>
+                    <input type="password" id="login_password" placeholder="비밀번호" required style="padding:8px;border:1px solid #ddd;border-radius:4px;width:200px;">
+                </div>
+                <button type="submit" style="background:#2980b9;color:white;border:none;padding:9px 25px;border-radius:5px;cursor:pointer;">로그인</button>
+            </form>
+            <div id="loginResult" style="margin-top:10px;display:none;padding:12px;border-radius:5px;"></div>
+
+            <script>
+            let currentToken = null;
+
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const resultDiv = document.getElementById('loginResult');
+                resultDiv.style.display = 'none';
+
+                try {
+                    const res = await fetch('/api/v1/auth/login', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            username: document.getElementById('login_username').value,
+                            password: document.getElementById('login_password').value
+                        })
+                    });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        currentToken = data.access_token;
+                        localStorage.setItem('jwt_token', currentToken);
+                        showMyInfo(resultDiv);
+                    } else {
+                        resultDiv.style.background = '#f8d7da';
+                        resultDiv.style.border = '1px solid #dc3545';
+                        resultDiv.innerHTML = '<b>로그인 실패:</b> ' + (data.detail || '잘못된 사용자명 또는 비밀번호');
+                        resultDiv.style.display = 'block';
+                    }
+                } catch(err) {
+                    resultDiv.style.background = '#f8d7da';
+                    resultDiv.style.border = '1px solid #dc3545';
+                    resultDiv.innerHTML = '<b>오류:</b> 서버 연결 실패';
+                    resultDiv.style.display = 'block';
+                }
+            });
+
+            async function showMyInfo(resultDiv) {
+                const meRes = await fetch('/api/v1/auth/me', {
+                    headers: {'Authorization': 'Bearer ' + currentToken}
+                });
+                const me = await meRes.json();
+
+                let keysHtml = '<table style="width:100%;margin-top:10px;border-collapse:collapse;">';
+                keysHtml += '<tr style="background:#f0f4f8;"><th style="padding:6px;border:1px solid #ddd;">Key (앞부분)</th><th style="padding:6px;border:1px solid #ddd;">이름</th><th style="padding:6px;border:1px solid #ddd;">일일 요청</th><th style="padding:6px;border:1px solid #ddd;">일일 데이터</th><th style="padding:6px;border:1px solid #ddd;">상태</th></tr>';
+                if (me.api_keys) {
+                    me.api_keys.forEach(k => {
+                        keysHtml += `<tr>
+                            <td style="padding:6px;border:1px solid #ddd;"><code>${k.prefix}...</code></td>
+                            <td style="padding:6px;border:1px solid #ddd;">${k.name || '-'}</td>
+                            <td style="padding:6px;border:1px solid #ddd;">${k.daily_requests}회</td>
+                            <td style="padding:6px;border:1px solid #ddd;">${k.daily_data_mb}MB</td>
+                            <td style="padding:6px;border:1px solid #ddd;">${k.active?'<span style="color:green;">활성</span>':'<span style="color:red;">비활성</span>'}</td>
+                        </tr>`;
+                    });
+                }
+                keysHtml += '</table>';
+
+                resultDiv.style.background = '#d4edda';
+                resultDiv.style.border = '1px solid #28a745';
+                resultDiv.innerHTML = `
+                    <b>로그인 성공!</b><br>
+                    <b>이름:</b> ${me.full_name || me.username} | <b>소속:</b> ${me.affiliation || '-'} | <b>역할:</b> ${me.role}<br>
+                    <br><b>내 API Keys:</b>
+                    ${keysHtml}
+                    <br>
+                    <button onclick="regenerateKey()" style="background:#e67e22;color:white;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;margin-top:5px;">API Key 재발급</button>
+                    <span style="color:#888;font-size:0.9em;margin-left:10px;">기존 키는 비활성화됩니다</span>
+                    ${me.role === 'admin' ? '<br><br><a href="/admin" style="color:#2980b9;font-weight:bold;">관리자 페이지 →</a>' : ''}
+                    <div id="regenResult" style="margin-top:10px;display:none;"></div>
+                `;
+                resultDiv.style.display = 'block';
+            }
+
+            async function regenerateKey() {
+                if (!currentToken) return;
+                if (!confirm('기존 API Key가 비활성화되고 새 키가 발급됩니다. 계속하시겠습니까?')) return;
+
+                const regenDiv = document.getElementById('regenResult');
+                try {
+                    const res = await fetch('/api/v1/auth/regenerate-key', {
+                        method: 'POST',
+                        headers: {'Authorization': 'Bearer ' + currentToken}
+                    });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        regenDiv.style.background = '#fff3cd';
+                        regenDiv.style.border = '1px solid #ffc107';
+                        regenDiv.style.padding = '10px';
+                        regenDiv.style.borderRadius = '4px';
+                        regenDiv.innerHTML = `<b>새 API Key 발급 완료!</b><br><br>
+                            <code style="font-size:1.1em;color:#c0392b;word-break:break-all;">${data.api_key}</code><br><br>
+                            <span style="color:#c0392b;font-weight:bold;">이 키는 다시 볼 수 없습니다. 지금 복사해두세요!</span>`;
+                        regenDiv.style.display = 'block';
+
+                        // 키 목록 갱신
+                        setTimeout(() => showMyInfo(document.getElementById('loginResult')), 1000);
+                    } else {
+                        regenDiv.innerHTML = '<span style="color:red;">재발급 실패: ' + (data.detail || '') + '</span>';
+                        regenDiv.style.display = 'block';
+                    }
+                } catch(err) {
+                    regenDiv.innerHTML = '<span style="color:red;">서버 연결 실패</span>';
+                    regenDiv.style.display = 'block';
+                }
+            }
+            </script>
+        </div>
+
+        <div class="card">
+            <h2>회원가입</h2>
+            <p>API Key를 발급받으려면 회원가입이 필요합니다.</p>
+            <form id="registerForm" style="margin-top:15px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div>
+                        <label><b>이메일 *</b></label><br>
+                        <input type="email" id="reg_email" placeholder="student@jejunu.ac.kr" required style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    </div>
+                    <div>
+                        <label><b>사용자명 (ID) *</b></label><br>
+                        <input type="text" id="reg_username" placeholder="student01" required style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    </div>
+                    <div>
+                        <label><b>비밀번호 *</b></label><br>
+                        <input type="password" id="reg_password" placeholder="8자 이상" required style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    </div>
+                    <div>
+                        <label><b>이름</b></label><br>
+                        <input type="text" id="reg_fullname" placeholder="홍길동" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    </div>
+                    <div style="grid-column:1/3;">
+                        <label><b>소속</b></label><br>
+                        <input type="text" id="reg_affiliation" placeholder="제주대학교" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    </div>
+                </div>
+                <button type="submit" style="margin-top:15px;background:#2980b9;color:white;border:none;padding:10px 30px;border-radius:5px;cursor:pointer;font-size:1em;">회원가입</button>
+            </form>
+            <div id="registerResult" style="margin-top:15px;display:none;padding:15px;border-radius:5px;"></div>
+
+            <script>
+            document.getElementById('registerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const resultDiv = document.getElementById('registerResult');
+                resultDiv.style.display = 'none';
+
+                const data = {
+                    email: document.getElementById('reg_email').value,
+                    username: document.getElementById('reg_username').value,
+                    password: document.getElementById('reg_password').value,
+                    full_name: document.getElementById('reg_fullname').value || null,
+                    affiliation: document.getElementById('reg_affiliation').value || null
+                };
+
+                try {
+                    const res = await fetch('/api/v1/auth/register', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+
+                    if (res.ok) {
+                        resultDiv.style.background = '#d4edda';
+                        resultDiv.style.border = '1px solid #28a745';
+                        resultDiv.innerHTML = '<b>회원가입 완료!</b><br><br>' +
+                            '<b>API Key (반드시 저장하세요!):</b><br>' +
+                            '<code style="font-size:1.1em;color:#c0392b;word-break:break-all;">' + result.api_key + '</code><br><br>' +
+                            '<span style="color:#c0392b;">이 키는 다시 볼 수 없습니다. 지금 복사해두세요!</span>';
+                    } else {
+                        resultDiv.style.background = '#f8d7da';
+                        resultDiv.style.border = '1px solid #dc3545';
+                        resultDiv.innerHTML = '<b>오류:</b> ' + (result.detail || '회원가입 실패');
+                    }
+                } catch(err) {
+                    resultDiv.style.background = '#f8d7da';
+                    resultDiv.style.border = '1px solid #dc3545';
+                    resultDiv.innerHTML = '<b>오류:</b> 서버 연결 실패';
+                }
+                resultDiv.style.display = 'block';
+            });
+            </script>
+        </div>
+
+        <div class="card">
+            <h2>시작하기</h2>
+            <h3>Python 사용 예시</h3>
+<pre>import requests
+
+API = "http://203.253.202.159:8080"
+API_KEY = "jnu_발급받은키"  # 회원가입 시 발급된 키
+
+# AIS 항적 조회
+res = requests.get(f"{API}/api/v1/ais/track",
+    params={"mmsi": 440137010, "start_date": "2023-01-01", "end_date": "2023-01-07"},
+    headers={"X-Api-Key": API_KEY})
+data = res.json()
+print(f"총 {data['count']}건")
+
+# 수산 데이터 조회
+res = requests.get(f"{API}/api/v1/fishery/tables/fish_cpue",
+    params={"limit": 100},
+    headers={"X-Api-Key": API_KEY})
+print(res.json())</pre>
+
+            <h3>curl 사용 예시</h3>
+<pre>curl -H "X-Api-Key: jnu_발급받은키" \
+  "http://203.253.202.159:8080/api/v1/ais/track?mmsi=440137010&start_date=2023-01-01&end_date=2023-01-07"</pre>
+        </div>
+
+        <div class="card">
+            <h2>Base URL</h2>
+            <pre>http://203.253.202.159:8000/api/v1</pre>
+        </div>
+
+        <div class="card">
+            <h2>API 엔드포인트</h2>
+
+            <h3>AIS 항적 데이터</h3>
+            <div class="endpoint">
+                <code>GET /api/v1/ais/track</code> — MMSI 기준 항적 조회
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/ais/area</code> — 영역 기준 항적 조회
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/ais/tables</code> — 사용 가능한 데이터 기간
+            </div>
+
+            <h3>선박 정보</h3>
+            <div class="endpoint">
+                <code>GET /api/v1/ships/fishing</code> — 어선 목록 조회
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/ships/fishing/{mmsi}</code> — 어선 상세 정보
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/ships/cooperatives</code> — 수협 관할구역
+            </div>
+
+            <h3>수산 데이터</h3>
+            <div class="endpoint">
+                <code>GET /api/v1/fishery/tables</code> — 사용 가능한 테이블 목록
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/fishery/tables/{table_name}</code> — 테이블 데이터 조회
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/fishery/tables/{table_name}/schema</code> — 테이블 스키마
+            </div>
+
+            <h3>인증</h3>
+            <div class="endpoint">
+                <code>POST /api/v1/auth/register</code> — 회원가입
+            </div>
+            <div class="endpoint">
+                <code>POST /api/v1/auth/login</code> — 로그인 (JWT)
+            </div>
+            <div class="endpoint">
+                <code>GET /api/v1/auth/me</code> — 내 정보
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>사용 예시</h2>
+
+            <h3>Python</h3>
+<pre>import requests
+
+# 특정 선박 항적 조회
+url = "http://203.253.202.159:8000/api/v1/ais/track"
+params = {
+    "mmsi": 440137010,
+    "start_date": "2023-06-01",
+    "end_date": "2023-06-07",
+    "limit": 5000
+}
+response = requests.get(url, params=params)
+data = response.json()
+
+print(f"총 {data['count']}건")
+for row in data['data'][:5]:
+    print(f"  {row['datetime']} | ({row['lat']:.4f}, {row['lon']:.4f}) | SOG={row['sog']}kn")</pre>
+
+            <h3>영역 조회</h3>
+<pre># 울산 앞바다 영역 조회
+params = {
+    "lat_min": 35.0, "lat_max": 35.5,
+    "lon_min": 129.0, "lon_max": 129.5,
+    "start_date": "2023-06-01",
+    "end_date": "2023-06-02",
+    "limit": 10000
+}
+response = requests.get("http://203.253.202.159:8000/api/v1/ais/area", params=params)</pre>
+
+            <h3>curl</h3>
+<pre>curl "http://203.253.202.159:8000/api/v1/ais/track?mmsi=440137010&start_date=2023-06-01&end_date=2023-06-07&limit=100"</pre>
+        </div>
+
+        <div class="card">
+            <h2>데이터 설명</h2>
+            <table>
+                <tr><th>필드</th><th>설명</th><th>단위</th></tr>
+                <tr><td>datetime</td><td>수신 시각</td><td>UTC</td></tr>
+                <tr><td>mmsi</td><td>선박 MMSI 번호</td><td>-</td></tr>
+                <tr><td>lat</td><td>위도</td><td>도 (degrees)</td></tr>
+                <tr><td>lon</td><td>경도</td><td>도 (degrees)</td></tr>
+                <tr><td>sog</td><td>대지속력</td><td>knots</td></tr>
+                <tr><td>cog</td><td>대지침로</td><td>도 (0~360)</td></tr>
+                <tr><td>heading</td><td>선수방위</td><td>도</td></tr>
+                <tr><td>rot</td><td>선회율</td><td>-</td></tr>
+                <tr><td>nav_status</td><td>항해 상태</td><td>코드</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>제한 사항</h2>
+            <ul style="margin-left: 20px; line-height: 2;">
+                <li>요청당 최대 <b>100,000건</b></li>
+                <li>영역 조회 시 기간을 <b>7일 이내</b>로 권장</li>
+                <li>대용량 데이터는 기간을 나누어 요청해주세요</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>문의</h2>
+            <p>데이터 관련 문의: 해양수산 데이터 분석 플랫폼</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>제주대학교 해양수산빅데이터 API &copy; 2026</p>
+    </div>
+</body>
+</html>

@@ -4,11 +4,30 @@ DB 스키마 탐색 라우터 (공개)
 - /schema/tables/{db} : 테이블 목록
 - /schema/tables/{db}/{table} : 테이블 상세 (컬럼, 샘플, 행수)
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 import psycopg2
 from config import AIS_DB, FISHERY_DB, LOCAL_DB, FISHERY_TABLES
+from services.auth_service import validate_api_key, decode_token
 
 router = APIRouter(prefix="/api/schema", tags=["스키마 탐색"], include_in_schema=False)
+
+
+def require_auth(x_api_key: str = None, authorization: str = None):
+    """API Key 또는 JWT 둘 중 하나 필요"""
+    # JWT 시도
+    if authorization:
+        try:
+            token = authorization.replace('Bearer ', '')
+            decode_token(token)
+            return True
+        except Exception:
+            pass
+    # API Key 시도
+    if x_api_key:
+        result = validate_api_key(x_api_key)
+        if result and not (isinstance(result, dict) and 'error' in result):
+            return True
+    raise HTTPException(status_code=401, detail="인증 필요 (X-Api-Key 헤더 또는 Authorization Bearer 토큰)")
 
 
 # === DB 접속 헬퍼 ===
@@ -53,8 +72,9 @@ DB_INFO = {
 
 
 @router.get("/databases")
-def databases():
+def databases(x_api_key: str = Header(None), authorization: str = Header(None)):
     """3개 DB 개요 및 테이블 수"""
+    require_auth(x_api_key, authorization)
     result = []
     for key, info in DB_INFO.items():
         table_count = None
@@ -87,8 +107,9 @@ def databases():
 
 
 @router.get("/tables/{db}")
-def tables(db: str):
+def tables(db: str, x_api_key: str = Header(None), authorization: str = Header(None)):
     """특정 DB의 테이블 목록"""
+    require_auth(x_api_key, authorization)
     if db not in DB_INFO:
         raise HTTPException(status_code=404, detail=f"알 수 없는 DB: {db}")
 
@@ -146,8 +167,10 @@ def tables(db: str):
 
 
 @router.get("/tables/{db}/{table}")
-def table_detail(db: str, table: str, sample: int = 5):
+def table_detail(db: str, table: str, sample: int = 5,
+                 x_api_key: str = Header(None), authorization: str = Header(None)):
     """테이블 컬럼 + 행수 + 샘플"""
+    require_auth(x_api_key, authorization)
     if db not in DB_INFO:
         raise HTTPException(status_code=404, detail=f"알 수 없는 DB: {db}")
 
@@ -285,11 +308,11 @@ def _marine_category(name):
 def _marine_description(name):
     MAP = {
         'shipinfo': '모든 선박 메타정보 55,225척 (여객선/화물선/어선, 기본 조회용)',
-        'shipinfo_ner': '음성인식(NER) 전용 발음 변형 53,909척 - 일반 조회에 사용 안 함',
+        'fishing_shipinfo_kcg': '해양경찰청 보유 선박제원 60,905척 (어선등록번호 + MMSI + 허가/업종)',
+        'fishing_voyage': '어선 항차 메타 (mmsi, voyage_num, 시작/종료, duration)',
         'fishing_shipinfo': '한국 어선 부속 정보 3,264척 (업종/톤수)',
         'kfw_ebp_shipinfo': '내부 분석용 어선 1,006척',
         'kfw_ebp_voyage': '항차별 구역 체류 시간',
-        'kfw_ebp_trjdata': '원본 항적 데이터 (마이그레이션 완료)',
     }
     if name in MAP: return MAP[name]
     if name.startswith('ship_'):

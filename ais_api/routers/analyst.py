@@ -293,8 +293,9 @@ host: 203.253.202.21 / db: aisdb
 ## 3) marine (선박 메타 + 분석 DB)
 host: 203.253.202.171 / db: marine
 - **shipinfo: 모든 선박 통합 메타정보 55,225척 (우선 사용)**
+- **fishing_shipinfo_kcg: 해양경찰청 보유 선박제원 60,905척 (어선등록번호+MMSI+허가/업종)**
+- fishing_voyage: 어선 항차 메타 (mmsi, voyage_num, start_time, end_time, duration)
 - fishing_shipinfo: 한국 어선 부속 정보 3,264척
-- shipinfo_ner: 음성인식(NER) 전용 발음 변형 테이블 — **일반 조회에는 사용 금지**
 - kfw_ebp_shipinfo: 내부 분석용 어선 1,006척 (사용자에 노출 X)
 - kfw_ebp_voyage: 내부 항차 분석 (사용자에 노출 X)
 - ship_{{mmsi}}: MMSI별 개별 항적 테이블 (조업 분석용)
@@ -322,6 +323,24 @@ FROM shipinfo WHERE shiptype_portmis='여객선' AND nationality='대한민국' 
 
 ### fishing_shipinfo (marine, 3,264척 - 어선 보조)
 shipinfo에 이미 대부분 컬럼 있으므로 특수한 경우에만 사용.
+
+### ★ fishing_shipinfo_kcg (marine, 60,905척) — 해양경찰청 어선 제원 (가장 풍부)
+어선등록번호로 MMSI 찾을 때 사용. shipinfo보다 어선 정보 더 상세.
+주요 컬럼:
+- mmsi(bigint, 수협 MMSI), radio_ais_mmsi(bigint, 무선국 AIS MMSI - AIS 항적 매칭용)
+- registration_no(bigint, 어선 등록번호), shipname(text), callsign(text)
+- tonnage, length_m, engine_ps, engine_kw, hull_material
+- fishing_type(text), port(text, 선적지)
+- crew_count, max_crew, build_date
+- fishing_license_local/state, license_start/end_local/state (어업 허가 정보)
+- mgmt_approval_no, mgmt_approval_start/end (관리어선 승인)
+- entry_no, rfid, report_method, sea_navi 등
+
+예 - 등록번호로 MMSI 찾기:
+```
+SELECT registration_no, shipname, mmsi, radio_ais_mmsi, fishing_type, port
+FROM fishing_shipinfo_kcg WHERE registration_no = 16060026501309
+```
 
 ### fish_landing_suhyub (fishery, 1억건, 반드시 date 필터)
 datetime(date), suhyub(str), fish_name(str), weight_kg(float), amount(int),

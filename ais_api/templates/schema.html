@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DB 스키마 탐색 | 제주대학교 해양수산빅데이터 API</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI','Noto Sans KR',sans-serif; background:#f4f6fa; color:#2c3e50; }
+
+  /* 헤더 */
+  .header {
+    background:linear-gradient(135deg,#1e3a5f,#2980b9);
+    color:white; padding:22px 32px;
+    display:flex; justify-content:space-between; align-items:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+  .header h1 { font-size:1.4em; font-weight:600; }
+  .header h1 small { opacity:0.75; font-weight:400; margin-left:8px; }
+  .header nav a {
+    color:white; text-decoration:none; margin-left:20px;
+    opacity:0.85; font-size:0.95em;
+  }
+  .header nav a:hover { opacity:1; text-decoration:underline; }
+
+  /* DB 탭 */
+  .db-tabs {
+    display:flex; gap:12px; padding:20px 32px 0;
+    background:white; border-bottom:1px solid #e5e9f0;
+  }
+  .db-tab {
+    background:#f8f9fb; border:1px solid #e5e9f0; border-bottom:none;
+    padding:14px 22px 16px; border-radius:10px 10px 0 0;
+    cursor:pointer; transition:all 0.2s;
+    display:flex; align-items:center; gap:12px; min-width:240px;
+    position:relative; top:1px;
+  }
+  .db-tab:hover { background:#eef2f7; }
+  .db-tab.active {
+    background:white; border-color:#d5dbe3; top:0;
+    padding-top:15px; font-weight:600;
+    box-shadow:0 -2px 6px rgba(0,0,0,0.04);
+  }
+  .db-tab.active::after {
+    content:''; position:absolute; bottom:-1px; left:0; right:0;
+    height:3px; background:#2980b9;
+  }
+  .db-icon {
+    width:36px; height:36px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    color:white; font-weight:700; font-size:1.2em;
+  }
+  .db-meta { flex:1; text-align:left; }
+  .db-meta .label { font-size:0.95em; color:#2c3e50; }
+  .db-meta .stat { font-size:0.78em; color:#7f8c8d; margin-top:2px; }
+
+  /* 메인 레이아웃 */
+  .main { display:flex; height:calc(100vh - 156px); background:white; }
+  .sidebar {
+    width:340px; border-right:1px solid #e5e9f0;
+    display:flex; flex-direction:column; background:#fafbfc;
+  }
+  .search-box {
+    padding:14px 16px; border-bottom:1px solid #e5e9f0;
+    background:white; position:sticky; top:0;
+  }
+  .search-box input {
+    width:100%; padding:9px 12px; border:1px solid #d5dbe3;
+    border-radius:6px; font-size:0.9em; outline:none;
+    transition:border-color 0.2s;
+  }
+  .search-box input:focus { border-color:#2980b9; }
+
+  .table-list { flex:1; overflow-y:auto; }
+  .table-category {
+    padding:10px 16px 4px; font-size:0.72em; font-weight:700;
+    color:#95a5a6; text-transform:uppercase; letter-spacing:0.05em;
+    background:#f4f6fa; border-top:1px solid #e5e9f0;
+  }
+  .table-item {
+    padding:10px 16px; cursor:pointer;
+    border-bottom:1px solid #eef1f5;
+    transition:background 0.15s;
+  }
+  .table-item:hover { background:#eef2f7; }
+  .table-item.active { background:#e3f2fd; border-left:3px solid #2980b9; padding-left:13px; }
+  .table-item .name {
+    font-family:'Consolas','Monaco',monospace; font-size:0.88em;
+    color:#2c3e50; font-weight:600;
+  }
+  .table-item .desc { font-size:0.78em; color:#7f8c8d; margin-top:3px; }
+  .table-item .count {
+    font-size:0.72em; color:#2980b9; margin-top:3px; font-weight:600;
+  }
+
+  /* 상세 패널 */
+  .detail {
+    flex:1; overflow-y:auto; padding:32px 40px;
+    background:white;
+  }
+  .detail-empty {
+    display:flex; align-items:center; justify-content:center;
+    height:100%; color:#bdc3c7; font-size:1.1em;
+  }
+  .detail h2 {
+    font-size:1.6em; color:#1e3a5f; margin-bottom:6px;
+    font-family:'Consolas','Monaco',monospace;
+  }
+  .detail .desc-text { color:#5d6d7e; margin-bottom:16px; font-size:0.95em; }
+  .stats {
+    display:flex; gap:24px; flex-wrap:wrap; margin:16px 0 28px;
+    padding:14px 18px; background:#f8f9fb;
+    border-radius:8px; border:1px solid #e5e9f0;
+  }
+  .stat-item { }
+  .stat-item .k { font-size:0.75em; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.05em; }
+  .stat-item .v { font-size:1.15em; font-weight:600; color:#2c3e50; margin-top:2px; }
+
+  .section-title {
+    font-size:0.8em; font-weight:700; color:#7f8c8d;
+    text-transform:uppercase; letter-spacing:0.08em;
+    margin:24px 0 10px; padding-bottom:6px;
+    border-bottom:1px solid #e5e9f0;
+  }
+
+  table.columns {
+    width:100%; border-collapse:collapse; font-size:0.9em;
+    background:white; border-radius:8px; overflow:hidden;
+    border:1px solid #e5e9f0;
+  }
+  table.columns th {
+    background:#f4f6fa; padding:10px 14px; text-align:left;
+    color:#5d6d7e; font-weight:600; font-size:0.82em;
+    text-transform:uppercase; letter-spacing:0.03em;
+    border-bottom:1px solid #e5e9f0;
+  }
+  table.columns td {
+    padding:10px 14px; border-bottom:1px solid #eef1f5;
+  }
+  table.columns tr:last-child td { border-bottom:none; }
+  .col-name { font-family:'Consolas','Monaco',monospace; font-weight:600; color:#2c3e50; }
+  .col-type { display:inline-block; padding:2px 8px; background:#e8f4fd; color:#2980b9; border-radius:4px; font-size:0.82em; font-family:'Consolas','Monaco',monospace; }
+  .col-null { font-size:0.82em; color:#95a5a6; }
+  .col-null.yes { color:#e67e22; }
+
+  .sample-wrap { overflow-x:auto; border:1px solid #e5e9f0; border-radius:8px; }
+  table.sample {
+    width:100%; border-collapse:collapse; font-size:0.82em;
+    font-family:'Consolas','Monaco',monospace;
+  }
+  table.sample th {
+    background:#f4f6fa; padding:8px 12px; text-align:left;
+    color:#5d6d7e; font-weight:600; white-space:nowrap;
+    border-bottom:1px solid #e5e9f0; position:sticky; top:0;
+  }
+  table.sample td {
+    padding:7px 12px; border-bottom:1px solid #eef1f5;
+    color:#2c3e50; white-space:nowrap;
+    max-width:240px; overflow:hidden; text-overflow:ellipsis;
+  }
+  table.sample tr:hover td { background:#f8fafc; }
+  .null-val { color:#bdc3c7; font-style:italic; }
+
+  .loading {
+    text-align:center; padding:40px; color:#95a5a6;
+  }
+  .loading::after {
+    content:''; display:inline-block; width:20px; height:20px;
+    border:2px solid #e5e9f0; border-top-color:#2980b9;
+    border-radius:50%; margin-left:10px;
+    animation:spin 0.7s linear infinite; vertical-align:middle;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .error {
+    padding:14px 18px; background:#fdecea; color:#c0392b;
+    border-radius:6px; font-size:0.9em;
+  }
+
+  .badge {
+    display:inline-block; padding:2px 8px; border-radius:10px;
+    font-size:0.72em; font-weight:600; margin-left:6px;
+  }
+  .badge-ok { background:#d5f5e3; color:#27ae60; }
+  .badge-err { background:#fadbd8; color:#c0392b; }
+
+  /* 관계도 */
+  .relations {
+    padding:14px 18px; background:#fffbea;
+    border-left:4px solid #f39c12;
+    border-radius:0 6px 6px 0; font-size:0.88em;
+    line-height:1.7; color:#5d6d7e;
+  }
+  .relations b { color:#2c3e50; }
+  .relations code { background:#fff; padding:2px 6px; border-radius:3px; font-family:'Consolas',monospace; color:#e67e22; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>DB 스키마 탐색<small>인터랙티브 데이터베이스 구조 가이드</small></h1>
+  <nav>
+    <a href="/">홈</a>
+    <a href="/docs">API 문서</a>
+    <a href="/redoc">ReDoc</a>
+  </nav>
+</div>
+
+<div class="db-tabs" id="dbTabs">
+  <div class="loading" style="padding:14px;">DB 정보 불러오는 중</div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="테이블 검색 (이름/설명)">
+    </div>
+    <div class="table-list" id="tableList">
+      <div class="loading">테이블 목록 로딩</div>
+    </div>
+  </aside>
+
+  <div class="detail" id="detail">
+    <div class="detail-empty">왼쪽에서 테이블을 선택하면 상세 정보가 표시됩니다</div>
+  </div>
+</div>
+
+<script>
+let currentDb = null;
+let allTables = [];
+
+// 숫자 포맷
+function fmt(n) {
+  if (n === null || n === undefined) return '-';
+  return n.toLocaleString();
+}
+
+function getAuthHeader() {
+  const token = localStorage.getItem('jwt_token') || localStorage.getItem('analyst_token') || localStorage.getItem('admin_token');
+  return token ? {'Authorization': 'Bearer ' + token} : {};
+}
+
+async function fetchJSON(url) {
+  const r = await fetch(url, {headers: getAuthHeader()});
+  if (r.status === 401) {
+    showLoginPanel();
+    throw new Error('로그인 필요');
+  }
+  if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+  return await r.json();
+}
+
+function showLoginPanel() {
+  if (document.getElementById('loginOverlay')) return;
+  const div = document.createElement('div');
+  div.id = 'loginOverlay';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  div.innerHTML = `
+    <div style="background:white;padding:40px;border-radius:10px;max-width:400px;width:90%;box-shadow:0 8px 24px rgba(0,0,0,0.2);">
+      <h2 style="color:#1e3a5f;margin-bottom:20px;">🔐 로그인 필요</h2>
+      <p style="color:#7f8c8d;font-size:0.9em;margin-bottom:20px;">DB 스키마 탐색은 로그인된 사용자만 이용 가능합니다.</p>
+      <form onsubmit="schemaLogin(event);return false;">
+        <input id="schemaUser" type="text" placeholder="사용자명" required style="width:100%;padding:10px 14px;border:1px solid #d5dbe3;border-radius:6px;margin-bottom:10px;font-size:0.95em;">
+        <input id="schemaPw" type="password" placeholder="비밀번호" required style="width:100%;padding:10px 14px;border:1px solid #d5dbe3;border-radius:6px;margin-bottom:10px;font-size:0.95em;">
+        <button type="submit" style="width:100%;padding:10px;background:#2980b9;color:white;border:none;border-radius:6px;font-size:1em;font-weight:600;cursor:pointer;">로그인</button>
+        <div id="schemaLoginErr" style="color:#c0392b;margin-top:10px;font-size:0.9em;"></div>
+      </form>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+async function schemaLogin(e) {
+  if (e) e.preventDefault();
+  const res = await fetch('/api/v1/auth/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      username: document.getElementById('schemaUser').value,
+      password: document.getElementById('schemaPw').value,
+    }),
+  });
+  const d = await res.json();
+  if (res.ok && d.access_token) {
+    localStorage.setItem('jwt_token', d.access_token);
+    document.getElementById('loginOverlay').remove();
+    loadDatabases();
+  } else {
+    document.getElementById('schemaLoginErr').textContent = d.detail || '로그인 실패';
+  }
+}
+
+// DB 탭 로드
+async function loadDatabases() {
+  try {
+    const { databases } = await fetchJSON('/api/schema/databases');
+    const tabs = document.getElementById('dbTabs');
+    tabs.innerHTML = '';
+    databases.forEach((db, i) => {
+      const tab = document.createElement('div');
+      tab.className = 'db-tab' + (i === 0 ? ' active' : '');
+      tab.dataset.db = db.key;
+      const statusBadge = db.status === 'ok'
+        ? '<span class="badge badge-ok">연결됨</span>'
+        : '<span class="badge badge-err">오류</span>';
+      tab.innerHTML = `
+        <div class="db-icon" style="background:${db.color}">${db.icon}</div>
+        <div class="db-meta">
+          <div class="label">${db.label}${statusBadge}</div>
+          <div class="stat">${db.host} · ${db.database} · ${fmt(db.table_count)} 테이블</div>
+        </div>`;
+      tab.addEventListener('click', () => selectDb(db.key));
+      tabs.appendChild(tab);
+    });
+    if (databases.length > 0) selectDb(databases[0].key);
+  } catch (e) {
+    document.getElementById('dbTabs').innerHTML = `<div class="error" style="margin:10px;">${e.message}</div>`;
+  }
+}
+
+async function selectDb(dbKey) {
+  currentDb = dbKey;
+  document.querySelectorAll('.db-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.db === dbKey);
+  });
+  document.getElementById('detail').innerHTML =
+    '<div class="detail-empty">왼쪽에서 테이블을 선택하면 상세 정보가 표시됩니다</div>';
+  document.getElementById('tableList').innerHTML = '<div class="loading">테이블 목록 로딩</div>';
+
+  try {
+    const { tables } = await fetchJSON(`/api/schema/tables/${dbKey}`);
+    allTables = tables;
+    renderTableList();
+  } catch (e) {
+    document.getElementById('tableList').innerHTML = `<div class="error" style="margin:10px;">${e.message}</div>`;
+  }
+}
+
+function renderTableList() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filtered = q
+    ? allTables.filter(t => t.name.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q))
+    : allTables;
+
+  const grouped = {};
+  filtered.forEach(t => {
+    const c = t.category || '기타';
+    (grouped[c] = grouped[c] || []).push(t);
+  });
+
+  const list = document.getElementById('tableList');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#95a5a6;">결과 없음</div>';
+    return;
+  }
+
+  let html = '';
+  Object.keys(grouped).sort().forEach(cat => {
+    html += `<div class="table-category">${cat} (${grouped[cat].length})</div>`;
+    grouped[cat].forEach(t => {
+      const countText = t.row_count !== null && t.row_count !== undefined
+        ? `${fmt(t.row_count)}건`
+        : '';
+      html += `
+        <div class="table-item" data-name="${t.name}">
+          <div class="name">${t.name}</div>
+          ${t.description ? `<div class="desc">${t.description}</div>` : ''}
+          ${countText ? `<div class="count">${countText}</div>` : ''}
+        </div>`;
+    });
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.table-item').forEach(el => {
+    el.addEventListener('click', () => selectTable(el.dataset.name, el));
+  });
+}
+
+async function selectTable(tableName, el) {
+  document.querySelectorAll('.table-item').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const detail = document.getElementById('detail');
+  detail.innerHTML = '<div class="loading">테이블 정보 로딩</div>';
+
+  try {
+    const data = await fetchJSON(`/api/schema/tables/${currentDb}/${tableName}?sample=5`);
+    renderDetail(data);
+  } catch (e) {
+    detail.innerHTML = `<div class="error">${e.message}</div>`;
+  }
+}
+
+function renderDetail(data) {
+  const detail = document.getElementById('detail');
+  const colRows = data.columns.map(c => `
+    <tr>
+      <td class="col-name">${c.name}</td>
+      <td><span class="col-type">${c.type}</span></td>
+      <td class="col-null ${c.nullable ? 'yes' : ''}">${c.nullable ? 'NULL 허용' : 'NOT NULL'}</td>
+      <td style="color:#7f8c8d; font-size:0.85em;">${c.comment || c.default || ''}</td>
+    </tr>
+  `).join('');
+
+  let sampleHtml = '';
+  if (data.sample.length > 0) {
+    const cols = Object.keys(data.sample[0]);
+    sampleHtml = `
+      <div class="sample-wrap">
+        <table class="sample">
+          <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${data.sample.map(row =>
+              `<tr>${cols.map(c => {
+                const v = row[c];
+                if (v === null) return '<td class="null-val">NULL</td>';
+                const s = String(v);
+                return `<td title="${s.replace(/"/g,'&quot;')}">${s.length > 60 ? s.slice(0,60)+'…' : s}</td>`;
+              }).join('')}</tr>`
+            ).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } else {
+    sampleHtml = '<div style="color:#bdc3c7;padding:20px;text-align:center;">샘플 없음</div>';
+  }
+
+  const relations = getRelations(data.db, data.table);
+
+  detail.innerHTML = `
+    <h2>${data.table}</h2>
+    ${data.description ? `<div class="desc-text">${data.description}</div>` : ''}
+    <div class="stats">
+      <div class="stat-item"><div class="k">DB</div><div class="v">${data.db}</div></div>
+      <div class="stat-item"><div class="k">컬럼 수</div><div class="v">${data.columns.length}</div></div>
+      <div class="stat-item"><div class="k">행 수</div><div class="v">${fmt(data.row_count)}</div></div>
+    </div>
+    ${relations ? `<div class="relations">${relations}</div>` : ''}
+    <div class="section-title">컬럼</div>
+    <table class="columns">
+      <thead><tr><th style="width:30%">컬럼명</th><th style="width:18%">타입</th><th style="width:15%">NULL</th><th>설명/기본값</th></tr></thead>
+      <tbody>${colRows}</tbody>
+    </table>
+    <div class="section-title">샘플 데이터 (최대 5건)</div>
+    ${sampleHtml}
+  `;
+}
+
+function getRelations(db, table) {
+  const R = {
+    marine: {
+      kfw_ebp_shipinfo: '🔗 <b>연결:</b> <code>mmsi</code> → <code>kfw_ebp_voyage.mmsi</code>, <code>ship_{mmsi}</code> 테이블',
+      kfw_ebp_voyage: '🔗 <b>연결:</b> <code>mmsi</code> → <code>kfw_ebp_shipinfo.mmsi</code> / <code>voyage_num</code>으로 항차 구분 (YY×1000+순번)',
+    },
+    fishery: {
+      fishing_shipinfo: '🔗 <b>연결:</b> <code>mmsi</code>로 AIS/Marine DB의 선박과 조인 가능',
+      fish_landing_suhyub: '⚠️ <b>대용량</b> (1억건). 반드시 <code>date_from</code>/<code>date_to</code> 필터 사용',
+      fish_cpue: '🔗 어종코드는 <code>fish_code</code>, 업종코드는 <code>fish_type_reference2</code> 참조',
+    },
+  };
+  if (table.startsWith('ship_')) {
+    const m = table.replace('ship_','');
+    return `🔗 <b>연결:</b> MMSI <code>${m}</code> 선박의 항적. 메타 정보는 <code>kfw_ebp_shipinfo</code> 참조, 항차 구분은 <code>kfw_ebp_voyage</code> 참조`;
+  }
+  return (R[db] && R[db][table]) || '';
+}
+
+document.getElementById('searchInput').addEventListener('input', renderTableList);
+
+loadDatabases();
+</script>
+
+</body>
+</html>

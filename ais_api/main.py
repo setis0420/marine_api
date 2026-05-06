@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 import uvicorn
 import os
 
-from routers import ais, ships, auth, admin, fishery, schema, analyst
+from routers import ais, ships, auth, admin, fishery, schema, analyst, marine
 from services.auth_service import init_db
 from config import API_HOST, API_PORT
 
@@ -39,6 +39,7 @@ app.include_router(fishery.router)
 app.include_router(admin.router)
 app.include_router(schema.router)
 app.include_router(analyst.router)
+app.include_router(marine.router)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

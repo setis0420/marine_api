@@ -23,6 +23,17 @@ LOCAL_DB = {
     'password': 'prhkddlf0420',
 }
 
+# === Marine DB 허용 테이블 (조회용 화이트리스트) ===
+MARINE_TABLES = {
+    'shipinfo': {'description': '모든 선박 메타정보 55,225척', 'max_limit': 5000},
+    'fishing_shipinfo': {'description': '한국 어선 정보 3,264척', 'max_limit': 5000},
+    'fishing_shipinfo_kcg': {'description': '해양경찰청 어선제원 60,905척', 'max_limit': 5000},
+    'fishing_voyage': {'description': '어선 항차 + 입항/수협 (1.47M행)', 'max_limit': 100000},
+    'fishing_landing_info': {'description': '대형트롤 일자×수협×어종 위판 (9,205행)', 'max_limit': 50000},
+    'fishing_spatio_temporal': {'description': '어선 그리드별 effort+어종 (12.1M행)', 'max_limit': 100000},
+    'kfw_ebp_voyage': {'description': '내부 항차 분석', 'max_limit': 50000},
+}
+
 # === API 설정 ===
 API_HOST = '0.0.0.0'
 API_PORT = 8006

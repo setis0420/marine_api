@@ -309,7 +309,9 @@ def _marine_description(name):
     MAP = {
         'shipinfo': '모든 선박 메타정보 55,225척 (여객선/화물선/어선, 기본 조회용)',
         'fishing_shipinfo_kcg': '해양경찰청 보유 선박제원 60,905척 (어선등록번호 + MMSI + 허가/업종)',
-        'fishing_voyage': '어선 항차 메타 (mmsi, voyage_num, 시작/종료, duration)',
+        'fishing_voyage': '어선 항차 + 입항 좌표 + 수협 매칭 (1.47M행, fishing_hours/total_hours/johab_code 등)',
+        'fishing_landing_info': '대형트롤 입항 통계 + 어종별 위판량 (일자×수협×위판장×어종, 9,205행)',
+        'fishing_spatio_temporal': '어선 그리드별 어획 추정 (0.01° × 일자, 어종별 분배, 12.1M행)',
         'fishing_shipinfo': '한국 어선 부속 정보 3,264척 (업종/톤수)',
         'kfw_ebp_shipinfo': '내부 분석용 어선 1,006척',
         'kfw_ebp_voyage': '항차별 구역 체류 시간',

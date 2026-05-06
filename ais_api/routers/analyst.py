@@ -294,7 +294,9 @@ host: 203.253.202.21 / db: aisdb
 host: 203.253.202.171 / db: marine
 - **shipinfo: 모든 선박 통합 메타정보 55,225척 (우선 사용)**
 - **fishing_shipinfo_kcg: 해양경찰청 보유 선박제원 60,905척 (어선등록번호+MMSI+허가/업종)**
-- fishing_voyage: 어선 항차 메타 (mmsi, voyage_num, start_time, end_time, duration)
+- **fishing_voyage**: 어선 항차 (1.47M) — 입항 좌표/수협 + 조업시간 컬럼 포함
+- **fishing_landing_info**: 일자×수협×위판장×어종 위판 통계 + 입항 통계 (대형트롤 9,205행)
+- **fishing_spatio_temporal**: 어선 그리드별 effort + 어종 분배 (대형트롤 12.1M행)
 - fishing_shipinfo: 한국 어선 부속 정보 3,264척
 - kfw_ebp_shipinfo: 내부 분석용 어선 1,006척 (사용자에 노출 X)
 - kfw_ebp_voyage: 내부 항차 분석 (사용자에 노출 X)
@@ -363,6 +365,40 @@ business_type(text), port(text)
 ### kfw_ebp_voyage (marine)
 mmsi(int), voyage_num(int), target_area(text, KFW/EBP/total),
 start_time(ts), end_time(ts), duration(int, 분), model(text)
+
+### ★ fishing_voyage (marine, 1.47M행) — 어선 항차 종합 정보
+mmsi, voyage_num, target_area, start_time, end_time
+**조업시간** (모두 시간 단위):
+  total_hours (항차 총 경과시간), fishing_hours (실제 조업시간, sog 2~5kn 기준),
+  nav_hours (항해), stby_hours (정박)
+effort_source ('sog' 등)
+**입항 위치/수협**:
+  entry_lat, entry_lon (입항 좌표),
+  johab_code, johab_name (매칭 수협, 5km 이내),
+  entry_distance_km (매칭 거리)
+id (FK용 surrogate)
+
+### ★ fishing_landing_info (marine, 대형트롤 9,205행) — 일자×수협×위판장×어종 위판 통계
+landing_date, fishing_type ('대형트롤어업'),
+johab_code, johab_name, wepan_code, wepan_name,
+fish_code, fish_name,
+weight_kg (어종별 위판량 합), price_total, sale_count,
+ship_count (그날 그 johab 입항 트롤 어선 수),
+total_fishing_hours (그 어선들 fishing_hours 합)
+
+CPUE (어획 효율): weight_kg / NULLIF(total_fishing_hours, 0)
+
+### ★ fishing_spatio_temporal (marine, 대형트롤 12.1M행) — 그리드별 어획 추정
+어선이 0.01° 그리드에서 보낸 시간 + 어종 분배
+datetime (그리드 어획일, median), mmsi,
+fishing_ship_type ('대형트롤어업'), service_type ('트롤'),
+lat, lon (0.01° 그리드 중심),
+fishing_hours (그 그리드 effort, 시간),
+fish_code, fish_name, weight_kg (분배된 어획량),
+sell_location (위판 수협명), landing_date (어선 입항일),
+effort_source
+
+활용: 어종별 어획해역 지도, 그리드별 CPUE 분포
 
 ### ship_{{mmsi}} (marine, 개별 항적)
 datetime(ts), lat(int, ×10^7), lon(int, ×10^7), sog(int, ×10),

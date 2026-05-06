@@ -303,7 +303,8 @@ def main():
     p.add_argument('--target-csv', default=DEFAULT_TARGET_CSV)
     p.add_argument('--fishing-type', default=None,
                    help='업종 필터 (콤마로 여러 개 지정 가능, 예: "대형선망어업,근해채낚기어업")')
-    p.add_argument('--mmsi', type=int, default=None, help='단일 MMSI 테스트')
+    p.add_argument('--mmsi', type=str, default=None,
+                   help='특정 MMSI(들) - 콤마로 여러 개 지정 가능 (예: "440181090,440702840")')
     p.add_argument('--workers', type=int, default=7)
     args = p.parse_args()
 
@@ -313,7 +314,7 @@ def main():
 
     targets = []
     if args.mmsi:
-        targets = [args.mmsi]
+        targets = [int(m.strip()) for m in args.mmsi.split(',') if m.strip()]
     else:
         # CSV 없으면 DB에서 자동 생성
         if not os.path.exists(args.target_csv):

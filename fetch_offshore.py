@@ -262,14 +262,15 @@ def compute_voyage_and_save(cur, mmsi, table):
         voyage_meta[v]['count'] += 1
 
     # fishing_voyage INSERT (target_area='total')
+    # total_hours: end-start (시간단위). fishing/nav/stby_hours는 calc_fishing_hours.py가 SOG로 채움
     if voyage_meta:
         rows_v = [(int(mmsi), v, m['start'], m['end'], 'total',
-                   (m['end'] - m['start']).total_seconds() / 60.0, 'none', None, None)
+                   (m['end'] - m['start']).total_seconds() / 3600.0, 'none')
                   for v, m in voyage_meta.items()]
         execute_values(cur,
-            "INSERT INTO fishing_voyage (mmsi, voyage_num, start_time, end_time, target_area, duration, model, nav_duration, stby_duration) "
+            "INSERT INTO fishing_voyage (mmsi, voyage_num, start_time, end_time, target_area, total_hours, model) "
             "VALUES %s ON CONFLICT (mmsi, voyage_num, target_area) DO UPDATE "
-            "SET start_time=EXCLUDED.start_time, end_time=EXCLUDED.end_time, duration=EXCLUDED.duration",
+            "SET start_time=EXCLUDED.start_time, end_time=EXCLUDED.end_time, total_hours=EXCLUDED.total_hours",
             rows_v, page_size=1000)
 
     return len(voyage_meta)

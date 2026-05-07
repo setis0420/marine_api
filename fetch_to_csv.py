@@ -18,8 +18,9 @@ import time
 from datetime import datetime
 from multiprocessing import Pool
 
-REMOTE_DB = {'host': '203.253.202.21', 'dbname': 'aisdb',
-             'user': 'fishery_readonly_2', 'password': 'readonly', 'port': 5432}
+from db_config import AIS_DB as _AIS
+REMOTE_DB = {'host': _AIS['host'], 'dbname': _AIS['database'],
+             'user': _AIS['user'], 'password': _AIS['password'], 'port': _AIS['port']}
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_OUT_DIR = os.path.join(SCRIPT_DIR, 'csv_export')

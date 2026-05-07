@@ -1,36 +1,14 @@
-# === DB 설정 ===
-AIS_DB = {
-    'host': '203.253.202.21',
-    'port': 5432,
-    'database': 'aisdb',
-    'user': 'fishery_readonly_2',
-    'password': 'readonly',
-}
+"""
+ais_api 설정.
+DB 자격증명 / JWT 비밀키는 프로젝트 루트의 db_config.py 에서 가져옴 (gitignored).
+"""
+import sys, os
+# 프로젝트 루트를 sys.path에 추가해서 db_config.py 임포트 가능하게
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
-FISHERY_DB = {
-    'host': '203.253.202.21',
-    'port': 5432,
-    'database': 'fishery',
-    'user': 'fishery_readonly_2',
-    'password': 'readonly',
-}
-
-LOCAL_DB = {
-    'host': '203.253.202.171',
-    'port': 5432,
-    'database': 'marine',
-    'user': 'postgres',
-    'password': 'prhkddlf0420',
-}
-
-# 171 aisdb (충돌 near-miss). readonly 계정만 사용
-NEARMISS_DB = {
-    'host': '203.253.202.171',
-    'port': 5432,
-    'database': 'aisdb',
-    'user': 'nearmiss_ro',
-    'password': 'nearmiss_readonly_2026',
-}
+from db_config import AIS_DB, FISHERY_DB, LOCAL_DB, NEARMISS_DB, JWT_SECRET  # noqa
 
 # === Marine DB 허용 테이블 (조회용 화이트리스트) ===
 MARINE_TABLES = {
@@ -62,7 +40,6 @@ MAX_ROWS = 1000000
 DEFAULT_LIMIT = 100000
 
 # === JWT 설정 ===
-JWT_SECRET = 'jnu-marine-bigdata-api-secret-key-2026-change-this'
 JWT_ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 30

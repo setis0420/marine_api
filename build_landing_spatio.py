@@ -19,10 +19,11 @@ from collections import defaultdict
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-LOCAL_DB = {'host': '203.253.202.171', 'dbname': 'marine',
-            'user': 'postgres', 'password': 'prhkddlf0420', 'port': 5432}
-FISHERY_DB = {'host': '203.253.202.21', 'dbname': 'fishery',
-              'user': 'fishery_readonly_2', 'password': 'readonly', 'port': 5432}
+from db_config import LOCAL_DB as _LOCAL, FISHERY_DB as _FISH
+LOCAL_DB = {'host': _LOCAL['host'], 'dbname': _LOCAL['database'],
+            'user': _LOCAL['user'], 'password': _LOCAL['password'], 'port': _LOCAL['port']}
+FISHERY_DB = {'host': _FISH['host'], 'dbname': _FISH['database'],
+              'user': _FISH['user'], 'password': _FISH['password'], 'port': _FISH['port']}
 
 FISHING_TYPE = '대형트롤어업'
 SERVICE_TYPE = '트롤'

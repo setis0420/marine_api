@@ -23,11 +23,13 @@ import time
 from datetime import datetime, timedelta
 from multiprocessing import Pool, Value, Lock
 
-# === DB 설정 ===
-REMOTE_DB = {'host': '203.253.202.21', 'dbname': 'aisdb',
-             'user': 'fishery_readonly_2', 'password': 'readonly', 'port': '5432'}
-LOCAL_DB = {'host': '203.253.202.171', 'dbname': 'marine',
-            'user': 'postgres', 'password': 'prhkddlf0420', 'port': '5432'}
+# === DB 설정 (db_config.py 에서 자격증명 로드) ===
+from db_config import AIS_DB as _AIS, LOCAL_DB as _LOCAL
+# psycopg2 키 이름 정규화 (database -> dbname)
+REMOTE_DB = {'host': _AIS['host'], 'dbname': _AIS['database'],
+             'user': _AIS['user'], 'password': _AIS['password'], 'port': str(_AIS['port'])}
+LOCAL_DB = {'host': _LOCAL['host'], 'dbname': _LOCAL['database'],
+            'user': _LOCAL['user'], 'password': _LOCAL['password'], 'port': str(_LOCAL['port'])}
 
 # === 경로 (스크립트 위치 기준 자동 해석) ===
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

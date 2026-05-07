@@ -9,8 +9,9 @@ from psycopg2.extras import execute_values
 sys.stdout.reconfigure(encoding='utf-8')
 
 XLSX = r'k:\coding_project\해양수산 데이터 분석 플랫폼\해양경찰청 보유 선박제원(3.31.)_정리본.xlsx'
-LOCAL_DB = {'host': '203.253.202.171', 'dbname': 'marine',
-            'user': 'postgres', 'password': 'prhkddlf0420', 'port': 5432}
+from db_config import LOCAL_DB as _LOCAL
+LOCAL_DB = {'host': _LOCAL['host'], 'dbname': _LOCAL['database'],
+            'user': _LOCAL['user'], 'password': _LOCAL['password'], 'port': _LOCAL['port']}
 
 # (한글, 영어, 타입, 설명)
 COLS = [

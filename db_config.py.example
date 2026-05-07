@@ -1,0 +1,42 @@
+"""
+DB 자격증명 템플릿 (이 파일은 commit OK).
+
+사용법:
+1. 이 파일을 db_config.py 로 복사
+2. PLACEHOLDER 값들을 실제 자격증명으로 교체
+3. db_config.py 는 .gitignore 에 등록되어 있으므로 절대 커밋되지 않음
+"""
+
+AIS_DB = {
+    'host': 'AIS_DB_HOST',
+    'port': 5432,
+    'database': 'aisdb',
+    'user': 'AIS_DB_USER',
+    'password': 'AIS_DB_PASSWORD',
+}
+
+FISHERY_DB = {
+    'host': 'FISHERY_DB_HOST',
+    'port': 5432,
+    'database': 'fishery',
+    'user': 'FISHERY_DB_USER',
+    'password': 'FISHERY_DB_PASSWORD',
+}
+
+LOCAL_DB = {
+    'host': 'LOCAL_DB_HOST',
+    'port': 5432,
+    'database': 'marine',
+    'user': 'LOCAL_DB_USER',
+    'password': 'LOCAL_DB_PASSWORD',
+}
+
+NEARMISS_DB = {
+    'host': 'NEARMISS_DB_HOST',
+    'port': 5432,
+    'database': 'aisdb',
+    'user': 'NEARMISS_DB_USER',
+    'password': 'NEARMISS_DB_PASSWORD',
+}
+
+JWT_SECRET = 'CHANGE_ME_TO_A_RANDOM_LONG_STRING'

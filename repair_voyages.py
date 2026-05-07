@@ -10,8 +10,7 @@ import numpy as np
 import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-LOCAL = dict(host='203.253.202.171', port=5432, database='marine',
-             user='postgres', password='prhkddlf0420')
+from db_config import LOCAL_DB as LOCAL
 PORT_STAY_THRESHOLD = timedelta(minutes=30)
 
 

@@ -25,6 +25,8 @@ venv/
 .env
 .env.*
 !.env.example
+db_config.py
+!db_config.py.example
 
 # === 개발 도구 ===
 .vscode/
